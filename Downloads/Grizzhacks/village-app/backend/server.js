@@ -1,40 +1,44 @@
 const express = require("express");
-const cors = require("cors");
 const mysql = require("mysql2");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MySQL connection
+// 🔌 MySQL connection
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "yourpassword",
+  password: "",   // leave blank if you didn't set one
   database: "village_app"
 });
 
-db.connect(err => {
+// connect
+db.connect((err) => {
   if (err) {
-    console.log("DB error:", err);
+    console.log("❌ DB connection failed:", err);
   } else {
-    console.log("MySQL connected!");
+    console.log("✅ Connected to MySQL!");
   }
 });
 
-// Test route
+// test route
 app.get("/", (req, res) => {
-  res.send("Backend is running");
+  res.send("Backend is running 🚀");
 });
 
-// Example API
-app.get("/posts", (req, res) => {
-  db.query("SELECT * FROM posts", (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
+// test database route
+app.get("/users", (req, res) => {
+  db.query("SELECT * FROM Users", (err, results) => {
+    if (err) {
+      res.status(500).send(err);
+    } else {
+      res.json(results);
+    }
   });
 });
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+app.listen(3001, () => {
+  console.log("🚀 Server running on port 3001");
 });
