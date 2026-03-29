@@ -142,7 +142,7 @@ const s = StyleSheet.create({
   },
   inputFocused: {
     borderColor: colors.lightpurple,
-    backgroundColor: 'rgba(184,180,242,0.12)',
+    backgroundColor: colors.background,
   },
   error: {
     color: '#FFB4A2', fontSize: 13,
