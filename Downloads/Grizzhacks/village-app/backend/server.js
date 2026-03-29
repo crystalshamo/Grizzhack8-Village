@@ -7,23 +7,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ── DB Connection ─────────────────────────────────────────────────────────────
-
 const db = mysql.createPool({
   host: "35.50.104.14",
-  port: 3006,
+  port: 3306,
   user: "root",
-  password: "password",
+  password: "Password",
   database: "village_app",
 });
-
-// ── Health Check ──────────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => {
   res.send("Village backend is running 🚀");
 });
-
-// ── Users ─────────────────────────────────────────────────────────────────────
 
 app.post("/api/users/register", async (req, res) => {
   const { name, email, password_hash, is_mentor, zipcode } = req.body;
@@ -51,7 +45,7 @@ app.post("/api/users/login", async (req, res) => {
 
   try {
     const [results] = await db.query(
-      "SELECT user_id, name, email, password_hash AS stored_hash, is_mentor, zipcode FROM Users WHERE email = ?",
+      "SELECT user_id, name, email, password_hash AS stored_hash, is_mentor, zipcode, about_text FROM Users WHERE email = ?",
       [email]
     );
 
@@ -76,7 +70,7 @@ app.post("/api/users/login", async (req, res) => {
 app.get("/api/users/:id", async (req, res) => {
   try {
     const [results] = await db.query(
-      "SELECT user_id, name, email, is_mentor, zipcode FROM Users WHERE user_id = ?",
+      "SELECT user_id, name, email, is_mentor, zipcode, about_text FROM Users WHERE user_id = ?",
       [req.params.id]
     );
 
@@ -91,16 +85,43 @@ app.get("/api/users/:id", async (req, res) => {
 });
 
 app.put("/api/users/:id", async (req, res) => {
-  const { name, zipcode, is_mentor } = req.body;
+  const { name, zipcode, is_mentor, about_text } = req.body;
+
+  if (!req.params.id) {
+    return res.status(400).json({ error: "Missing user id" });
+  }
+
+  if (!name || typeof name !== "string") {
+    return res.status(400).json({ error: "Name is required" });
+  }
 
   try {
-    await db.query(
-      "UPDATE Users SET name = ?, zipcode = ?, is_mentor = ? WHERE user_id = ?",
-      [name, zipcode, is_mentor, req.params.id]
+    const [result] = await db.query(
+      "UPDATE Users SET name = ?, zipcode = ?, is_mentor = ?, about_text = ? WHERE user_id = ?",
+      [
+        name.trim(),
+        typeof zipcode === "string" ? zipcode.trim() : "",
+        !!is_mentor,
+        typeof about_text === "string" ? about_text.trim() : "",
+        req.params.id,
+      ]
     );
 
-    res.json({ message: "User updated" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const [rows] = await db.query(
+      "SELECT user_id, name, email, is_mentor, zipcode, about_text FROM Users WHERE user_id = ?",
+      [req.params.id]
+    );
+
+    res.json({
+      message: "User updated",
+      user: rows[0],
+    });
   } catch (err) {
+    console.error("Failed to update user:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -108,7 +129,7 @@ app.put("/api/users/:id", async (req, res) => {
 app.get("/api/admin/users", async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT user_id, name, email, is_mentor, zipcode FROM Users"
+      "SELECT user_id, name, email, is_mentor, zipcode, about_text FROM Users"
     );
 
     res.json({
@@ -116,13 +137,9 @@ app.get("/api/admin/users", async (req, res) => {
       data: rows,
     });
   } catch (err) {
-    res.status(500).json({
-      error: err.message,
-    });
+    res.status(500).json({ error: err.message });
   }
 });
-
-// ── Questions & Answers ───────────────────────────────────────────────────────
 
 app.get("/api/questions", async (req, res) => {
   try {
@@ -181,8 +198,6 @@ app.get("/api/answers/:user_id", async (req, res) => {
   }
 });
 
-// ── Posts ─────────────────────────────────────────────────────────────────────
-
 app.get("/api/posts", async (req, res) => {
   try {
     const [results] = await db.query(
@@ -222,8 +237,6 @@ app.delete("/api/posts/:id", async (req, res) => {
   }
 });
 
-// ── Comments ──────────────────────────────────────────────────────────────────
-
 app.get("/api/posts/:id/comments", async (req, res) => {
   try {
     const [results] = await db.query(
@@ -256,8 +269,6 @@ app.post("/api/posts/:id/comments", async (req, res) => {
   }
 });
 
-// ── Reactions ─────────────────────────────────────────────────────────────────
-
 app.post("/api/posts/:id/reactions", async (req, res) => {
   const { user_id, reaction_type } = req.body;
 
@@ -272,8 +283,6 @@ app.post("/api/posts/:id/reactions", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// ── Chats & Messages ──────────────────────────────────────────────────────────
 
 app.get("/api/chats/:user_id", async (req, res) => {
   try {
@@ -344,8 +353,6 @@ app.post("/api/chats/:chat_id/messages", async (req, res) => {
   }
 });
 
-// ── Donations ─────────────────────────────────────────────────────────────────
-
 app.get("/api/donations", async (req, res) => {
   try {
     const [results] = await db.query(
@@ -391,8 +398,6 @@ app.put("/api/donations/:id", async (req, res) => {
   }
 });
 
-// ── Matches ───────────────────────────────────────────────────────────────────
-
 app.get("/api/matches/:user_id", async (req, res) => {
   try {
     const [results] = await db.query(
@@ -429,26 +434,6 @@ app.post("/api/matches", async (req, res) => {
   }
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
-
 app.listen(3001, () => {
- console.log("🚀 Server running on port 3001");
-});
-
-
-app.get("/api/admin/users", async (req, res) => {
-  try {
-    const [rows] = await db.query(
-      "SELECT user_id, name, email, is_mentor, zipcode FROM Users"
-    );
-
-    res.json({
-      message: "All users fetched successfully",
-      data: rows,
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: err.message,
-    });
-  }
+  console.log("🚀 Server running on port 3001");
 });
