@@ -36,6 +36,59 @@ export const updateProfile = async (user_id, data) => {
   return res.json()
 }
 
+// ── Support & Mentorship ──────────────────────────────────────────────────────
+
+export const getMentors = async (user_id) => {
+  const url = user_id
+    ? `${BASE_URL}/api/mentors?user_id=${user_id}`
+    : `${BASE_URL}/api/mentors`
+  const res = await fetch(url, { headers })
+  return res.json()
+}
+
+export const requestMentor = async (user_id, mentor_id) => {
+  const res = await fetch(`${BASE_URL}/api/mentors/request`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ user_id, mentor_id }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || 'Request failed')
+  }
+  return res.json()
+}
+
+export const getSentRequests = async (user_id) => {
+  const res = await fetch(`${BASE_URL}/api/mentors/requests/${user_id}`, { headers })
+  return res.json()
+}
+
+export const getNotifications = async (user_id) => {
+  const res = await fetch(`${BASE_URL}/api/notifications/${user_id}`, { headers })
+  return res.json()
+}
+
+export const cancelMentorRequest = async (user_id, mentor_id) => {
+  const res = await fetch(`${BASE_URL}/api/mentors/request`, {
+    method: 'DELETE', headers,
+    body: JSON.stringify({ user_id, mentor_id }),
+  })
+  return res.json()
+}
+
+export const createOrganization = async (data) => {
+  const res = await fetch(`${BASE_URL}/api/organizations`, {
+    method: 'POST', headers,
+    body: JSON.stringify(data),
+  })
+  return res.json()
+}
+
+export const getOrganizations = async () => {
+  const res = await fetch(`${BASE_URL}/api/organizations`, { headers })
+  return res.json()
+}
+
 // ── Questions ─────────────────────────────────────────────────────────────────
 
 export const getQuestions = async () => {

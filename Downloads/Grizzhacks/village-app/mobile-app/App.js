@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -15,17 +15,36 @@ import ForumsScreen from './src/screens/Forums/ForumsScreen'
 import ConnectingScreen from './src/screens/Connecting/ConnectingScreen'
 import DonationsScreen from './src/screens/Donations/DonationsScreen'
 import ProfileScreen from './src/screens/Profile/ProfileScreen'
+import SupportScreen from './src/screens/Support/SupportScreen'
 import LoginScreen from './src/screens/Auth/LoginScreen'
 import RegisterScreen from './src/screens/Auth/RegisterScreen'
 import OnboardingScreen from './src/screens/Auth/OnboardingScreen'
 import { NAV_ITEMS } from './src/data/index'
+import { getNotifications } from './src/api/api'
 
 export default function App() {
-  const [user, setUser] = useState(null)
-  const [onboarded, setOnboarded] = useState(false)
-  const [authScreen, setAuthScreen] = useState('login')
-  const [activeTab, setActiveTab] = useState('forums')
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [user, setUser]                   = useState(null)
+  const [onboarded, setOnboarded]         = useState(false)
+  const [authScreen, setAuthScreen]       = useState('login')
+  const [activeTab, setActiveTab]         = useState('forums')
+  const [menuOpen, setMenuOpen]           = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [notifsOpen, setNotifsOpen]       = useState(false)
+
+  const unreadCount = notifications.filter(n => !n.is_read).length
+
+  // poll notifications every 30s when logged in
+  useEffect(() => {
+    if (!user?.user_id) return
+    function fetchNotifs() {
+      getNotifications(user.user_id)
+        .then(data => setNotifications(Array.isArray(data) ? data : []))
+        .catch(() => {})
+    }
+    fetchNotifs()
+    const interval = setInterval(fetchNotifs, 30000)
+    return () => clearInterval(interval)
+  }, [user])
 
   function navigate(tab) {
     setActiveTab(tab)
@@ -139,6 +158,31 @@ export default function App() {
         </View>
       </Modal>
 
+      {/* Notifications panel */}
+      <Modal visible={notifsOpen} transparent animationType="slide" onRequestClose={() => setNotifsOpen(false)}>
+        <View style={s.notifOverlay}>
+          <Pressable style={s.notifBackdrop} onPress={() => setNotifsOpen(false)} />
+          <View style={s.notifPanel}>
+            <View style={s.notifHeader}>
+              <Text style={s.notifTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setNotifsOpen(false)}>
+                <Text style={s.notifClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {notifications.length === 0 ? (
+              <Text style={s.notifEmpty}>No notifications yet.</Text>
+            ) : (
+              notifications.map(n => (
+                <View key={n.notification_id} style={[s.notifItem, !n.is_read && s.notifItemUnread]}>
+                  <Text style={s.notifMessage}>{n.message}</Text>
+                  <Text style={s.notifTime}>{new Date(n.created_at).toLocaleDateString()}</Text>
+                </View>
+              ))
+            )}
+          </View>
+        </View>
+      </Modal>
+
       <View style={s.topBar}>
         <TouchableOpacity
           style={s.hamburger}
@@ -152,14 +196,22 @@ export default function App() {
 
         <Text style={s.topBarTitle}>{currentLabel}</Text>
 
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={s.bellBtn} onPress={() => setNotifsOpen(true)} activeOpacity={0.7}>
+          <Text style={s.bellIcon}>🔔</Text>
+          {unreadCount > 0 && (
+            <View style={s.bellBadge}>
+              <Text style={s.bellBadgeText}>{unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={{ flex: 1 }}>
-        {activeTab === 'forums' && <ForumsScreen user={user} />}
+        {activeTab === 'forums'     && <ForumsScreen user={user} />}
         {activeTab === 'connecting' && <ConnectingScreen user={user} />}
-        {activeTab === 'donations' && <DonationsScreen user={user} />}
-        {activeTab === 'profile' && <ProfileScreen user={user} />}
+        {activeTab === 'donations'  && <DonationsScreen user={user} />}
+        {activeTab === 'profile'    && <ProfileScreen user={user} />}
+        {activeTab === 'support'    && <SupportScreen user={user} />}
       </View>
 
       {activeTab !== 'profile' && (
@@ -205,6 +257,32 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  bellBtn:      { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  bellIcon:     { fontSize: 20 },
+  bellBadge: {
+    position: 'absolute', top: 4, right: 4,
+    backgroundColor: '#EF4444', width: 16, height: 16,
+    borderRadius: 8, justifyContent: 'center', alignItems: 'center',
+  },
+  bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+
+  notifOverlay:  { flex: 1, justifyContent: 'flex-end' },
+  notifBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(20,18,30,0.4)' },
+  notifPanel: {
+    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, maxHeight: '70%',
+  },
+  notifHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  notifTitle:  { fontSize: 17, fontWeight: '700', color: '#1A1A2E' },
+  notifClose:  { fontSize: 16, color: '#8B8FA8', padding: 4 },
+  notifEmpty:  { color: '#8B8FA8', textAlign: 'center', paddingVertical: 24 },
+  notifItem: {
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F6',
+  },
+  notifItemUnread: { backgroundColor: '#EEF2FF', borderRadius: 10, paddingHorizontal: 10, marginHorizontal: -10 },
+  notifMessage:    { fontSize: 14, color: '#1A1A2E', lineHeight: 20 },
+  notifTime:       { fontSize: 11, color: '#8B8FA8', marginTop: 4 },
 
   hamLine: {
     width: 20,

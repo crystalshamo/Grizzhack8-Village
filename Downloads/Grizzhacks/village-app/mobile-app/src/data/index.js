@@ -40,8 +40,9 @@ export const DONATION_REQUESTS = [
 ]
 
 export const NAV_ITEMS = [
-  { id: 'profile',    label: 'Profile',    icon: '👤' },
-  { id: 'forums',     label: 'Forums',     icon: '💬' },
-  { id: 'connecting', label: 'Connecting', icon: '🔗' },
-  { id: 'donations',  label: 'Donations',  icon: '🤝' },
+  { id: 'profile',    label: 'Profile',             icon: '👤' },
+  { id: 'forums',     label: 'Forums',              icon: '💬' },
+  { id: 'connecting', label: 'Connecting',           icon: '🔗' },
+  { id: 'donations',  label: 'Donations',            icon: '🤝' },
+  { id: 'support',    label: 'Support & Mentorship', icon: '🌱' },
 ]
