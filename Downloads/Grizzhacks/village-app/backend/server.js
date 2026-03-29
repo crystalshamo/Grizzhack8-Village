@@ -432,5 +432,23 @@ app.post("/api/matches", async (req, res) => {
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 app.listen(3001, () => {
-  console.log("🚀 Server running on port 3001");
+ console.log("🚀 Server running on port 3001");
+});
+
+
+app.get("/api/admin/users", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT user_id, name, email, is_mentor, zipcode FROM Users"
+    );
+
+    res.json({
+      message: "All users fetched successfully",
+      data: rows,
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message,
+    });
+  }
 });
