@@ -1,4 +1,5 @@
 import { StyleSheet, Platform } from 'react-native'
+import { colors, fonts } from './themes' 
 
 export const shared = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 100 },

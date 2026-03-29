@@ -11,6 +11,7 @@ const db = mysql.createPool({
   host: "localhost",
   user: "root",
   password: "Password",
+  password: "Password",
   database: "village_app",
 });
 
@@ -46,6 +47,7 @@ app.post("/api/users/login", async (req, res) => {
   try {
     const [results] = await db.query(
       "SELECT user_id, name, email, password_hash AS stored_hash, is_mentor, zipcode, about_text FROM Users WHERE email = ?",
+      "SELECT user_id, name, email, password_hash AS stored_hash, is_mentor, zipcode, about_text FROM Users WHERE email = ?",
       [email]
     );
 
@@ -70,6 +72,7 @@ app.post("/api/users/login", async (req, res) => {
 app.get("/api/users/:id", async (req, res) => {
   try {
     const [results] = await db.query(
+      "SELECT user_id, name, email, is_mentor, zipcode, about_text FROM Users WHERE user_id = ?",
       "SELECT user_id, name, email, is_mentor, zipcode, about_text FROM Users WHERE user_id = ?",
       [req.params.id]
     );
@@ -223,47 +226,68 @@ app.get("/api/mentors", async (req, res) => {
   }
 });
 
-app.post("/api/mentors/request", async (req, res) => {
-  const { user_id, mentor_id } = req.body;
+// app.post("/api/mentors/request", async (req, res) => {
+//   const { user_id, mentor_id } = req.body;
+//   try {
+//     await db.query(
+//       "INSERT INTO MentorRequests (user_id, mentor_id, status) VALUES (?, ?, 'pending')" +
+//       " ON DUPLICATE KEY UPDATE status = 'pending', created_at = NOW()",
+//       [user_id, mentor_id]
+//     );
+
+//     const [[requester]] = await db.query(
+//       "SELECT name FROM Users WHERE user_id = ?", [user_id]
+//     );
+
+//     await db.query(
+//       "INSERT INTO Notifications (user_id, message, type) VALUES (?, ?, 'mentor_request')",
+//       [mentor_id, `${requester?.name ?? "Someone"} wants to connect with you as a mentor`]
+//     );
+
+//     res.status(201).json({ message: "Request sent" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Like a post
+// ─────────────────────────────────────────────────────────────────────────────
+app.post("/api/posts/:id/like", async (req, res) => {
   try {
     await db.query(
-      "INSERT INTO MentorRequests (user_id, mentor_id, status) VALUES (?, ?, 'pending')" +
-      " ON DUPLICATE KEY UPDATE status = 'pending'",
-      [user_id, mentor_id]
+      "UPDATE Posts SET like_count = like_count + 1 WHERE post_id = ?",
+      [req.params.id]
     );
 
-    const [[requester]] = await db.query(
-      "SELECT name FROM Users WHERE user_id = ?", [user_id]
+    const [[post]] = await db.query(
+      "SELECT like_count FROM Posts WHERE post_id = ?",
+      [req.params.id]
     );
 
-    await db.query(
-      "INSERT INTO Notifications (user_id, message, type) VALUES (?, ?, 'mentor_request')",
-      [mentor_id, `${requester?.name ?? "Someone"} wants to connect with you as a mentor`]
-    );
-
-    const [[mentor]] = await db.query(
-      "SELECT name FROM Users WHERE user_id = ?", [mentor_id]
-    );
-
-    await db.query(
-      "INSERT INTO Notifications (user_id, message, type) VALUES (?, ?, 'mentor_request')",
-      [user_id, `Your connection request to ${mentor?.name ?? "the mentor"} was sent!`]
-    );
-
-    res.status(201).json({ message: "Request sent" });
+    res.json({ like_count: post.like_count });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/mentors/request", async (req, res) => {
-  const { user_id, mentor_id } = req.body;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unlike a post
+// ─────────────────────────────────────────────────────────────────────────────
+app.post("/api/posts/:id/unlike", async (req, res) => {
   try {
     await db.query(
-      "DELETE FROM MentorRequests WHERE user_id = ? AND mentor_id = ?",
-      [user_id, mentor_id]
+      "UPDATE Posts SET like_count = GREATEST(like_count - 1, 0) WHERE post_id = ?",
+      [req.params.id]
     );
-    res.json({ message: "Request cancelled" });
+
+    const [[post]] = await db.query(
+      "SELECT like_count FROM Posts WHERE post_id = ?",
+      [req.params.id]
+    );
+
+    res.json({ like_count: post.like_count });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -277,6 +301,7 @@ app.get("/api/mentors/requests/:user_id", async (req, res) => {
     );
     res.json(rows.map(r => r.mentor_id));
   } catch (err) {
+    console.error("Failed to update user:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -310,6 +335,19 @@ app.get("/api/organizations", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM Organizations ORDER BY org_id ASC");
     res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/organizations", async (req, res) => {
+  const { name, icon, tagline, topics, url, color, text_color } = req.body;
+  try {
+    const [result] = await db.query(
+      "INSERT INTO Organizations (name, icon, tagline, topics, url, color, text_color) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [name, icon, tagline, topics, url, color ?? "#EEF2FF", text_color ?? "#4F46E5"]
+    );
+    res.status(201).json({ org_id: result.insertId, message: "Organization created" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -515,6 +553,28 @@ app.post("/api/posts/:id/comments", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.get("/api/posts/search", async (req, res) => {
+  const { q } = req.query
+  if (!q) return res.json([])
+  try {
+    const search = `%${q}%`
+    const [results] = await db.query(
+      `SELECT p.post_id, p.content, p.image_url, p.is_anonymous, p.prompt_id, p.like_count, p.created_at, p.forum_id,
+              u.name AS author_name, f.name AS forum_name,
+              (SELECT COUNT(*) FROM Comments c WHERE c.post_id = p.post_id) AS comment_count
+       FROM Posts p
+       LEFT JOIN Users u ON p.user_id = u.user_id
+       LEFT JOIN Forums f ON p.forum_id = f.forum_id
+       WHERE p.content LIKE ? OR f.name LIKE ? OR u.name LIKE ?
+       ORDER BY p.created_at DESC`,
+      [search, search, search]
+    );
+    res.json(results)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // ── Reactions ─────────────────────────────────────────────────────────────────
 
@@ -1020,6 +1080,33 @@ app.post("/api/matches", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.delete("/api/mentors/request", async (req, res) => {
+  const { user_id, mentor_id } = req.body;
+  try {
+    await db.query(
+      "DELETE FROM MentorRequests WHERE user_id = ? AND mentor_id = ?",
+      [user_id, mentor_id]
+    );
+    res.json({ message: "Request cancelled" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/mentors/requests/:user_id", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT mentor_id FROM MentorRequests WHERE user_id = ?",
+      [req.params.user_id]
+    );
+    res.json(rows.map(r => r.mentor_id));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 // ── Start server ──────────────────────────────────────────────────────────────
 
