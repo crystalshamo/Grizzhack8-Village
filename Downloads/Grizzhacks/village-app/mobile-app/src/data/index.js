@@ -4,24 +4,43 @@ export const FORUM_POSTS = [
     title: 'Looking for volunteer mentors in tech',
     body: 'Our community center is seeking experienced developers to mentor youth aged 14–18. Even one hour a week makes a huge difference.',
     likes: 24, replies: 8, tag: 'Volunteering', tagBg: '#E0F2FE', tagTextColor: '#0284C7',
+    image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80',
+    comments: [
+      { author: 'Jordan K.', avatar: 'J', avatarColor: '#34D399', time: '1h ago', body: 'I can help out on weekends!' },
+      { author: 'Priya S.', avatar: 'P', avatarColor: '#F87171', time: '45m ago', body: 'Count me in for Wednesdays.' },
+    ],
   },
   {
     id: 2, author: 'Jordan K.', avatar: 'J', avatarColor: '#34D399', time: '5h ago',
     title: 'Weekend food drive — need drivers!',
     body: 'We have donations coming in Saturday morning but not enough drivers to distribute. Gas reimbursement provided.',
     likes: 41, replies: 13, tag: 'Food & Aid', tagBg: '#FEF3C7', tagTextColor: '#B45309',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+    comments: [
+      { author: 'Maya R.', avatar: 'M', avatarColor: '#A78BFA', time: '2h ago', body: 'I have a car and can help deliver.' },
+      { author: 'Omar T.', avatar: 'O', avatarColor: '#FBBF24', time: '1h ago', body: 'I can do a morning shift.' },
+    ],
   },
   {
     id: 3, author: 'Priya S.', avatar: 'P', avatarColor: '#F87171', time: '1d ago',
     title: 'Community garden plot available',
     body: 'One raised-bed plot opened up at Riverside Garden. Great for families or small groups. Apply by Sunday.',
     likes: 17, replies: 5, tag: 'Community', tagBg: '#F0FDF4', tagTextColor: '#16A34A',
+    image: '',
+    comments: [
+      { author: 'Omar T.', avatar: 'O', avatarColor: '#FBBF24', time: '12h ago', body: 'I know a family who would love this.' },
+    ],
   },
   {
     id: 4, author: 'Omar T.', avatar: 'O', avatarColor: '#FBBF24', time: '2d ago',
     title: 'Mental health check-in: how is everyone doing?',
     body: "No agenda here — just wanted to open a space for people to share how they're holding up. This community is a safe place.",
     likes: 89, replies: 34, tag: 'Wellness', tagBg: '#FDF4FF', tagTextColor: '#9333EA',
+    image: '',
+    comments: [
+      { author: 'Jordan K.', avatar: 'J', avatarColor: '#34D399', time: '1d ago', body: 'Thanks for starting this, Omar.' },
+      { author: 'Priya S.', avatar: 'P', avatarColor: '#F87171', time: '22h ago', body: 'Sending love to everyone.' },
+    ],
   },
 ]
 
