@@ -87,12 +87,7 @@ const [likeCount, setLikeCount] = useState(post.like_count ?? 0)
             <TouchableOpacity style={styles.actionBtn} onPress={handleLike}>
   <Text style={[styles.actionBtnText, liked && { color: '#EF4444' }]}>
     {liked ? '♥' : '♡'}  {likeCount}
-  </Text>
-  <Image 
-  source={require('../../../../assets/mascot.png')} 
-  style={{ width: 100, height: 100 }}
-  resizeMode="contain"
-/>
+  </Text> 
 </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn}>
               <Text style={styles.actionBtnText}>💬  {post.comment_count}</Text>

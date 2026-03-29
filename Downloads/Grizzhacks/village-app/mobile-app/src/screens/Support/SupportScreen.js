@@ -4,25 +4,20 @@ import {
   StyleSheet, Platform, Linking, ActivityIndicator,
   TextInput, Modal, Pressable, KeyboardAvoidingView,
 } from 'react-native'
-import { shared } from '../../styles/shared'
+import { colors, fonts } from '../../styles/themes'
 import {
   getMentors, getOrganizations, requestMentor,
-  cancelMentorRequest, getSentRequests, createOrganization,
+  cancelMentorRequest, getSentRequests,
 } from '../../api/api'
 
 const TABS = ['Mentors', 'Organizations']
 
 export default function SupportScreen({ user }) {
   const [activeTab, setActiveTab] = useState('Mentors')
-  const [mentors, setMentors]     = useState([])
-  const [orgs, setOrgs]           = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [requested, setRequested] = useState({}) // mentor_id -> true
-
-  // add org modal
-  const [addOrgOpen, setAddOrgOpen] = useState(false)
-  const [orgForm, setOrgForm]       = useState({ name: '', tagline: '', url: '', icon: '', topics: '' })
-  const [orgSaving, setOrgSaving]   = useState(false)
+  const [mentors, setMentors] = useState([])
+  const [orgs, setOrgs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [requested, setRequested] = useState({})
 
   useEffect(() => {
     async function load() {
@@ -57,146 +52,69 @@ export default function SupportScreen({ user }) {
   async function handleRequest(mentorId) {
     if (!user?.user_id) return
     if (requested[mentorId]) {
-      // optimistic cancel
       setRequested(prev => { const n = { ...prev }; delete n[mentorId]; return n })
       cancelMentorRequest(user.user_id, mentorId).catch(() => {
-        // revert if server failed
         setRequested(prev => ({ ...prev, [mentorId]: true }))
       })
     } else {
-      // optimistic send — turn green immediately
       setRequested(prev => ({ ...prev, [mentorId]: true }))
-      requestMentor(user.user_id, mentorId).catch((err) => {
-        console.warn('Mentor request failed:', err.message)
-        // revert if server failed
+      requestMentor(user.user_id, mentorId).catch(() => {
         setRequested(prev => { const n = { ...prev }; delete n[mentorId]; return n })
       })
-    }
-  }
-
-  async function handleAddOrg() {
-    if (!orgForm.name || !orgForm.url) return
-    setOrgSaving(true)
-    try {
-      const res = await createOrganization({
-        name:       orgForm.name.trim(),
-        tagline:    orgForm.tagline.trim(),
-        url:        orgForm.url.trim(),
-        icon:       orgForm.icon.trim() || '🏢',
-        topics:     orgForm.topics.trim(),
-        color:      '#EEF2FF',
-        text_color: '#4F46E5',
-      })
-      if (res.org_id) {
-        const fresh = await getOrganizations()
-        setOrgs(Array.isArray(fresh) ? fresh : [])
-        setOrgForm({ name: '', tagline: '', url: '', icon: '', topics: '' })
-        setAddOrgOpen(false)
-      }
-    } catch (err) {
-      console.error('Failed to add org:', err)
-    } finally {
-      setOrgSaving(false)
     }
   }
 
   if (loading) {
     return (
       <View style={s.loadingWrap}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color={colors.lightpurple} />
+        <Text style={s.loadingText}>loading...</Text>
       </View>
     )
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* Add Organization Modal */}
-      <Modal visible={addOrgOpen} transparent animationType="slide" onRequestClose={() => setAddOrgOpen(false)}>
-        <KeyboardAvoidingView style={s.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Pressable style={s.modalBackdrop} onPress={() => setAddOrgOpen(false)} />
-          <View style={s.modalPanel}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Add Organization</Text>
-              <TouchableOpacity onPress={() => setAddOrgOpen(false)}>
-                <Text style={s.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
+    <View style={s.screen}>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>support</Text> 
+      </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={s.fieldLabel}>Name *</Text>
-              <TextInput style={s.input} placeholder="Organization name" placeholderTextColor="#B0B4C8"
-                value={orgForm.name} onChangeText={v => setOrgForm(p => ({ ...p, name: v }))} />
+      <View style={s.tabRow}>
+        {TABS.map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[s.tab, activeTab === tab && s.tabActive]}
+            onPress={() => setActiveTab(tab)}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.tabText, activeTab === tab && s.tabTextActive]}>{tab.toLowerCase()}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-              <Text style={s.fieldLabel}>Tagline</Text>
-              <TextInput style={s.input} placeholder="Short description" placeholderTextColor="#B0B4C8"
-                value={orgForm.tagline} onChangeText={v => setOrgForm(p => ({ ...p, tagline: v }))} />
+      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
-              <Text style={s.fieldLabel}>Website URL *</Text>
-              <TextInput style={s.input} placeholder="https://..." placeholderTextColor="#B0B4C8"
-                value={orgForm.url} onChangeText={v => setOrgForm(p => ({ ...p, url: v }))}
-                autoCapitalize="none" keyboardType="url" />
-
-              <Text style={s.fieldLabel}>Icon (emoji)</Text>
-              <TextInput style={s.input} placeholder="🏢" placeholderTextColor="#B0B4C8"
-                value={orgForm.icon} onChangeText={v => setOrgForm(p => ({ ...p, icon: v }))} />
-
-              <Text style={s.fieldLabel}>Topics (comma separated)</Text>
-              <TextInput style={s.input} placeholder="Health, Education, Mental Health" placeholderTextColor="#B0B4C8"
-                value={orgForm.topics} onChangeText={v => setOrgForm(p => ({ ...p, topics: v }))} />
-
-              <TouchableOpacity
-                style={[s.requestBtn, { marginTop: 20 }, (!orgForm.name || !orgForm.url) && { opacity: 0.5 }]}
-                onPress={handleAddOrg}
-                disabled={orgSaving || !orgForm.name || !orgForm.url}
-                activeOpacity={0.85}
-              >
-                {orgSaving
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={s.requestBtnText}>Add Organization</Text>
-                }
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      <ScrollView contentContainerStyle={shared.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={shared.screenHeader}>
-          <Text style={shared.screenTitle}>Support & Mentorship</Text>
-          <Text style={shared.screenSubtitle}>Connect with mentors and local organizations</Text>
-        </View>
-
-        {/* Tab switcher */}
-        <View style={s.tabRow}>
-          {TABS.map(tab => (
-            <TouchableOpacity
-              key={tab}
-              style={[s.tab, activeTab === tab && s.tabActive]}
-              onPress={() => setActiveTab(tab)}
-              activeOpacity={0.8}
-            >
-              <Text style={[s.tabText, activeTab === tab && s.tabTextActive]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Mentors tab */}
+        {/* Mentors */}
         {activeTab === 'Mentors' && (
           <View>
             <Text style={s.sectionHint}>
-              Experienced parents sorted by how closely they match your profile.
+              experienced parents sorted by how closely they match your profile.
             </Text>
+
             {mentors.length === 0 && (
-              <View style={shared.card}>
-                <Text style={s.emptyText}>No mentors available yet.</Text>
+              <View style={s.emptyCard}>
+                <Text style={s.emptyIcon}>👩‍👧</Text>
+                <Text style={s.emptyText}>no mentors available yet.</Text>
               </View>
             )}
+
             {mentors.map(mentor => {
-              const initials  = mentor.name?.trim().charAt(0).toUpperCase() ?? '?'
-              const topics    = Array.isArray(mentor.topics) ? mentor.topics : []
-              const isSent    = !!requested[mentor.user_id]
+              const initials = mentor.name?.trim().charAt(0).toUpperCase() ?? '?'
+              const topics = Array.isArray(mentor.topics) ? mentor.topics : []
+              const isSent = !!requested[mentor.user_id]
+
               return (
-                <View key={mentor.user_id} style={[shared.card, { marginBottom: 12 }]}>
+                <View key={mentor.user_id} style={s.card}>
                   <View style={s.mentorHeader}>
                     <View style={s.avatar}>
                       <Text style={s.avatarText}>{initials}</Text>
@@ -208,7 +126,7 @@ export default function SupportScreen({ user }) {
                     </View>
                     {mentor.score > 0 && (
                       <View style={s.matchBadge}>
-                        <Text style={s.matchBadgeText}>⭐ {mentor.score} match</Text>
+                        <Text style={s.matchBadgeText}>⭐ {mentor.score}</Text>
                       </View>
                     )}
                   </View>
@@ -231,7 +149,7 @@ export default function SupportScreen({ user }) {
                     activeOpacity={0.85}
                   >
                     <Text style={s.requestBtnText}>
-                      {isSent ? 'Request Sent — Tap to Cancel' : 'Connect with Mentor'}
+                      {isSent ? '✓ request sent — tap to cancel' : 'connect with mentor'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -240,34 +158,34 @@ export default function SupportScreen({ user }) {
           </View>
         )}
 
-        {/* Organizations tab */}
+        {/* Organizations */}
         {activeTab === 'Organizations' && (
           <View>
-            <View style={s.orgTabHeader}>
-              <Text style={s.sectionHint}>Local and national organizations supporting your parenting journey.</Text>
-              <TouchableOpacity style={s.addOrgBtn} onPress={() => setAddOrgOpen(true)} activeOpacity={0.85}>
-                <Text style={s.addOrgBtnText}>+ Add</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={s.sectionHint}>
+              local & national organizations supporting your journey.
+            </Text>
 
             {orgs.length === 0 && (
-              <View style={shared.card}>
-                <Text style={s.emptyText}>No organizations listed yet. Add one!</Text>
+              <View style={s.emptyCard}>
+                <Text style={s.emptyIcon}>🏢</Text>
+                <Text style={s.emptyText}>no organizations listed yet.</Text>
               </View>
             )}
+
             {orgs.map(org => {
               const topics = typeof org.topics === 'string'
                 ? org.topics.split(',').map(t => t.trim()).filter(Boolean)
                 : []
+
               return (
                 <TouchableOpacity
                   key={org.org_id}
-                  style={[shared.card, { marginBottom: 12 }]}
+                  style={s.card}
                   onPress={() => Linking.openURL(org.url).catch(() => {})}
                   activeOpacity={0.8}
                 >
                   <View style={s.orgRow}>
-                    <View style={[s.orgIcon, { backgroundColor: org.color }]}>
+                    <View style={s.orgIcon}>
                       <Text style={s.orgIconText}>{org.icon}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
@@ -276,11 +194,12 @@ export default function SupportScreen({ user }) {
                     </View>
                     <Text style={s.orgArrow}>›</Text>
                   </View>
+
                   {topics.length > 0 && (
                     <View style={s.topicRow}>
                       {topics.map(t => (
-                        <View key={t} style={[s.topicChip, { backgroundColor: org.color }]}>
-                          <Text style={[s.topicText, { color: org.text_color }]}>{t}</Text>
+                        <View key={t} style={s.topicChip}>
+                          <Text style={s.topicText}>{t}</Text>
                         </View>
                       ))}
                     </View>
@@ -296,75 +215,122 @@ export default function SupportScreen({ user }) {
 }
 
 const s = StyleSheet.create({
-  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F7FA' },
+  screen: { flex: 1, backgroundColor: colors.loginbackground },
 
-  tabRow: {
-    flexDirection: 'row', backgroundColor: '#EBEBF5',
-    borderRadius: 14, padding: 4, marginBottom: 16,
+  loadingWrap: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.loginbackground,
   },
-  tab:           { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' },
-  tabActive: {
-    backgroundColor: '#ffffff',
+  loadingText: {
+    color: colors.lightpurple, fontFamily: fonts.regular,
+    fontSize: 14, marginTop: 12,
+  },
+
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  headerTitle: {
+    fontSize: 28, fontFamily: fonts.bold,
+    color: colors.dark, letterSpacing: -0.5,
+  },
+  headerSub: {
+    fontSize: 13, fontFamily: fonts.regular,
+    color: colors.dark, opacity: 0.5, marginTop: 2,
+  },
+
+ tabRow: {
+  flexDirection: 'row',
+  marginHorizontal: 20,
+  marginBottom: 14,
+  backgroundColor: colors.purple,
+  borderRadius: 14,
+  padding: 4,
+},
+tab: {
+  flex: 1, paddingVertical: 10,
+  alignItems: 'center', borderRadius: 11,
+},
+tabActive: { backgroundColor: colors.lightpurple },
+tabText: { fontFamily: fonts.regular, fontSize: 13, color: colors.background }, // was colors.lightpurple
+tabTextActive: { fontFamily: fonts.bold, color: colors.purple }, // this one is fine
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
+
+  sectionHint: {
+    fontSize: 13, fontFamily: fonts.regular,
+    color: colors.dark, opacity: 0.5,
+    marginBottom: 14, lineHeight: 19,
+  },
+
+  emptyCard: {
+    alignItems: 'center', paddingVertical: 40,
+    backgroundColor: colors.purple, borderRadius: 18,
+    marginBottom: 12,
+  },
+  emptyIcon: { fontSize: 40, marginBottom: 10 },
+  emptyText: {
+    fontSize: 14, fontFamily: fonts.regular,
+    color: colors.lightpurple, opacity: 0.7,
+  },
+
+  card: {
+    backgroundColor: colors.purple,
+    borderRadius: 18, padding: 16, marginBottom: 12,
     ...Platform.select({
-      ios:     { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
-      android: { elevation: 3 },
+      ios: { shadowColor: '#090124', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12 },
+      android: { elevation: 4 },
     }),
   },
-  tabText:       { fontSize: 14, fontWeight: '600', color: '#8B8FA8' },
-  tabTextActive: { color: '#1A1A2E' },
-
-  sectionHint: { fontSize: 13, color: '#8B8FA8', marginBottom: 14, lineHeight: 19, flex: 1 },
-  emptyText:   { fontSize: 14, color: '#8B8FA8', textAlign: 'center', paddingVertical: 12 },
 
   mentorHeader: { flexDirection: 'row', gap: 12, marginBottom: 10, alignItems: 'flex-start' },
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#6366F1', justifyContent: 'center', alignItems: 'center',
+    width: 46, height: 46, borderRadius: 23,
+    backgroundColor: 'rgba(184,180,242,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(184,180,242,0.3)',
   },
-  avatarText:  { fontSize: 20, fontWeight: '700', color: '#fff' },
-  mentorName:  { fontSize: 15, fontWeight: '700', color: '#1A1A2E' },
-  mentorStage: { fontSize: 12, color: '#8B8FA8', marginTop: 2 },
-  mentorZip:   { fontSize: 12, color: '#8B8FA8', marginTop: 1 },
-  mentorBio:   { fontSize: 13, color: '#4B5563', lineHeight: 20, marginBottom: 10 },
+  avatarText: { fontSize: 18, fontFamily: fonts.bold, color: colors.lightpurple },
+  mentorName: { fontSize: 15, fontFamily: fonts.bold, color: colors.background, marginBottom: 2 },
+  mentorStage: { fontSize: 12, fontFamily: fonts.regular, color: colors.lightpurple, opacity: 0.7 },
+  mentorZip: { fontSize: 12, fontFamily: fonts.regular, color: colors.lightpurple, opacity: 0.7, marginTop: 1 },
+  mentorBio: {
+    fontSize: 13, fontFamily: fonts.regular,
+    color: colors.background, lineHeight: 20,
+    marginBottom: 10, opacity: 0.8,
+  },
 
-  matchBadge: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  matchBadgeText: { fontSize: 11, fontWeight: '700', color: '#B45309' },
+  matchBadge: {
+    backgroundColor: 'rgba(250,231,200,0.15)',
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(250,231,200,0.2)',
+  },
+  matchBadgeText: { fontSize: 11, fontFamily: fonts.bold, color: colors.beige },
 
   topicRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  topicChip: { backgroundColor: '#EEF2FF', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  topicText: { fontSize: 11, fontWeight: '600', color: '#4F46E5' },
-
-  requestBtn:     { backgroundColor: '#4F46E5', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  requestBtnSent: { backgroundColor: '#16A34A' },
-  requestBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-
-  orgTabHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 0 },
-  addOrgBtn: {
-    backgroundColor: '#4F46E5', borderRadius: 10,
-    paddingVertical: 7, paddingHorizontal: 14, marginBottom: 14,
+  topicChip: {
+    backgroundColor: 'rgba(184,180,242,0.15)',
+    borderRadius: 20, paddingVertical: 4, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: 'rgba(184,180,242,0.2)',
   },
-  addOrgBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  topicText: { fontSize: 11, fontFamily: fonts.bold, color: colors.lightpurple },
 
-  orgRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
-  orgIcon:    { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  requestBtn: {
+    backgroundColor: colors.beige,
+    borderRadius: 12, paddingVertical: 12, alignItems: 'center',
+  },
+  requestBtnSent: { backgroundColor: 'rgba(184,180,242,0.2)', borderWidth: 1, borderColor: colors.lightpurple },
+  requestBtnText: { color: colors.dark, fontSize: 14, fontFamily: fonts.bold },
+
+  orgRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  orgIcon: {
+    width: 46, height: 46, borderRadius: 14,
+    backgroundColor: 'rgba(184,180,242,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(184,180,242,0.2)',
+  },
   orgIconText: { fontSize: 22 },
-  orgName:    { fontSize: 15, fontWeight: '700', color: '#1A1A2E', marginBottom: 2 },
-  orgTagline: { fontSize: 12, color: '#8B8FA8' },
-  orgArrow:   { fontSize: 22, color: '#C4C8D8' },
-
-  // modal
-  modalOverlay:  { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(20,18,30,0.4)' },
-  modalPanel: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingBottom: 40, maxHeight: '85%',
-  },
-  modalHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle:   { fontSize: 17, fontWeight: '700', color: '#1A1A2E' },
-  modalClose:   { fontSize: 16, color: '#8B8FA8', padding: 4 },
-  fieldLabel:   { fontSize: 12, fontWeight: '700', color: '#8B8FA8', marginBottom: 6, marginTop: 12 },
-  input: {
-    backgroundColor: '#F5F7FA', borderRadius: 12, padding: 14,
-    fontSize: 15, color: '#1A1A2E', borderWidth: 1, borderColor: '#EBEBF5',
-  },
+  orgName: { fontSize: 15, fontFamily: fonts.bold, color: colors.background, marginBottom: 2 },
+  orgTagline: { fontSize: 12, fontFamily: fonts.regular, color: colors.lightpurple, opacity: 0.7 },
+  orgArrow: { fontSize: 22, color: colors.lightpurple, opacity: 0.5 },
 })

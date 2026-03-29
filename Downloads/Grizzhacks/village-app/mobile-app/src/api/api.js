@@ -1,3 +1,4 @@
+// #updated
 const BASE_URL = 'https://nonobligatorily-likeable-oneida.ngrok-free.dev'
 
 const headers = {
@@ -68,6 +69,13 @@ export const getNotifications = async (user_id) => {
   return res.json()
 }
 
+export const markAllNotificationsRead = async (user_id) => {
+  const res = await fetch(`${BASE_URL}/api/notifications/read-all/${user_id}`, {
+    method: 'PUT', headers,
+  })
+  return res.json()
+}
+
 export const cancelMentorRequest = async (user_id, mentor_id) => {
   const res = await fetch(`${BASE_URL}/api/mentors/request`, {
     method: 'DELETE', headers,
@@ -135,6 +143,14 @@ export const likePost = async (id) => {
 }
 
 // ── Chats ─────────────────────────────────────────────────────────────────────
+
+export const createChat = async (user_ids) => {
+  const res = await fetch(`${BASE_URL}/api/chats`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ user_ids, is_group: false }),
+  })
+  return res.json()
+}
 
 export const getChats = async (user_id) => {
   const res = await fetch(`${BASE_URL}/api/chats/${user_id}`, { headers })

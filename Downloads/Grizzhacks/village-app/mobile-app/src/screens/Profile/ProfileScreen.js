@@ -207,6 +207,7 @@ export default function ProfileScreen({ user }) {
         </View>
       </View>
 
+      {/* Stats */}
       <View style={s.statsRow}>
         {stats.map((stat) => (
           <View key={stat.label} style={s.statBox}>

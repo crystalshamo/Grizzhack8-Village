@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useFonts, BricolageGrotesque_400Regular, BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque'
 import {
   View, Text, TouchableOpacity, Modal, StatusBar,
-  StyleSheet, SafeAreaView, Pressable, Platform,
+  StyleSheet, SafeAreaView, Pressable, Platform, LogBox,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
 import ForumsScreen from './src/screens/Forums/ForumsScreen'
@@ -17,7 +18,9 @@ import RegisterScreen from './src/screens/Auth/RegisterScreen'
 import OnboardingScreen from './src/screens/Auth/OnboardingScreen'
 import { NAV_ITEMS } from './src/data/index'
 import { colors, fonts } from './src/styles/themes'
-import { getNotifications } from './src/api/api'
+import { getNotifications, createChat, markAllNotificationsRead } from './src/api/api'
+
+LogBox.ignoreAllLogs(true)
 
 const Stack = createStackNavigator()
 
@@ -29,23 +32,29 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [notifsOpen, setNotifsOpen] = useState(false)
+  const [markedAllReadAt, setMarkedAllReadAt] = useState(null)
+  const [openChatId, setOpenChatId] = useState(null)
 
   const [fontsLoaded] = useFonts({
     BricolageGrotesque_400Regular,
     BricolageGrotesque_700Bold,
   })
 
-  const unreadCount = notifications.filter(n => !n.is_read).length
+  const unreadCount = notifications.filter(n =>
+    !n.is_read && (!markedAllReadAt || new Date(n.created_at) > markedAllReadAt)
+  ).length
 
   useEffect(() => {
     if (!user?.user_id) return
+
     function fetchNotifs() {
       getNotifications(user.user_id)
         .then(data => setNotifications(Array.isArray(data) ? data : []))
         .catch(() => {})
     }
+
     fetchNotifs()
-    const interval = setInterval(fetchNotifs, 30000)
+    const interval = setInterval(fetchNotifs, 5000)
     return () => clearInterval(interval)
   }, [user])
 
@@ -60,14 +69,21 @@ export default function App() {
     if (authScreen === 'register') {
       return (
         <RegisterScreen
-          onRegister={(newUser) => { setUser(newUser); setOnboarded(false) }}
+          onRegister={(newUser) => {
+            setUser(newUser)
+            setOnboarded(false)
+          }}
           onGoToLogin={() => setAuthScreen('login')}
         />
       )
     }
+
     return (
       <LoginScreen
-        onLogin={(loggedInUser) => { setUser(loggedInUser); setOnboarded(true) }}
+        onLogin={(loggedInUser) => {
+          setUser(loggedInUser)
+          setOnboarded(true)
+        }}
         onGoToRegister={() => setAuthScreen('register')}
       />
     )
@@ -81,7 +97,6 @@ export default function App() {
     <SafeAreaView style={s.shell}>
       <StatusBar barStyle="light-content" backgroundColor={colors.purple} />
 
-      {/* Drawer */}
       <Modal visible={menuOpen} transparent animationType="slide" onRequestClose={() => setMenuOpen(false)}>
         <View style={s.drawerModal}>
           <Pressable style={s.drawerBackdrop} onPress={() => setMenuOpen(false)} />
@@ -128,43 +143,83 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* Notifications Panel */}
       <Modal visible={notifsOpen} transparent animationType="slide" onRequestClose={() => setNotifsOpen(false)}>
         <View style={s.notifOverlay}>
           <Pressable style={s.notifBackdrop} onPress={() => setNotifsOpen(false)} />
           <View style={s.notifPanel}>
             <View style={s.notifHeader}>
               <Text style={s.notifTitle}>notifications</Text>
-              <TouchableOpacity onPress={() => setNotifsOpen(false)}>
-                <Text style={s.notifClose}>✕</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                {unreadCount > 0 && (
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await markAllNotificationsRead(user.user_id).catch(() => {})
+                      setMarkedAllReadAt(new Date())
+                      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })))
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={s.markAllRead}>mark all read</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => setNotifsOpen(false)}>
+                  <Text style={s.notifClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+
             {notifications.length === 0 ? (
               <Text style={s.notifEmpty}>no notifications yet.</Text>
             ) : (
-              notifications.map(n => (
-                <View key={n.notification_id} style={[s.notifItem, !n.is_read && s.notifItemUnread]}>
-                  <Text style={s.notifMessage}>{n.message}</Text>
-                  <Text style={s.notifTime}>{new Date(n.created_at).toLocaleDateString()}</Text>
-                </View>
-              ))
+              notifications.map(n => {
+                const isContribution = n.type?.startsWith('contribution:')
+                const contributorId = isContribution ? parseInt(n.type.split(':')[1], 10) : null
+
+                return (
+                  <View key={n.notification_id} style={[s.notifItem, !n.is_read && s.notifItemUnread]}>
+                    <Text style={s.notifMessage}>{n.message}</Text>
+                    <Text style={s.notifTime}>{new Date(n.created_at).toLocaleDateString()}</Text>
+
+                    {isContribution && contributorId && (
+                      <TouchableOpacity
+                        style={s.notifChatBtn}
+                        activeOpacity={0.85}
+                        onPress={async () => {
+                          try {
+                            const res = await createChat([user.user_id, contributorId])
+                            if (res?.chat_id) {
+                              setOpenChatId(res.chat_id)
+                            }
+                          } catch {}
+
+                          setNotifsOpen(false)
+                          setActiveTab('connecting')
+                        }}
+                      >
+                        <Text style={s.notifChatBtnText}>💬 Start Chat</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )
+              })
             )}
           </View>
         </View>
       </Modal>
 
-      {/* Top Bar */}
       <View style={s.topBar}>
         <TouchableOpacity style={s.hamburger} onPress={() => setMenuOpen(true)} activeOpacity={0.7}>
           <View style={s.hamLine} />
           <View style={s.hamLine} />
           <View style={s.hamLine} />
         </TouchableOpacity>
+
         <Text style={s.topBarTitle}>
           {NAV_ITEMS.find(item => item.id === activeTab)?.label?.toLowerCase() ?? ''}
         </Text>
+
         <TouchableOpacity style={s.bellBtn} onPress={() => setNotifsOpen(true)} activeOpacity={0.7}>
-          <Text style={s.bellIcon}>🔔</Text>
+          <Ionicons name="notifications-outline" size={20} color={colors.lightpurple} />
           {unreadCount > 0 && (
             <View style={s.bellBadge}>
               <Text style={s.bellBadgeText}>{unreadCount}</Text>
@@ -173,7 +228,6 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* Screens */}
       <View style={{ flex: 1 }}>
         {activeTab === 'forums' && (
           <NavigationContainer independent={true}>
@@ -187,18 +241,27 @@ export default function App() {
             </Stack.Navigator>
           </NavigationContainer>
         )}
-        {activeTab === 'connecting' && <ConnectingScreen user={user} />}
+
+        {activeTab === 'connecting' && (
+          <ConnectingScreen
+            user={user}
+            initialChatId={openChatId}
+            onChatOpened={() => setOpenChatId(null)}
+          />
+        )}
         {activeTab === 'donations' && <DonationsScreen user={user} />}
         {activeTab === 'profile' && <ProfileScreen user={user} />}
         {activeTab === 'support' && <SupportScreen user={user} />}
       </View>
 
-      {/* Profile FAB */}
+      {/* Remove FAB profile button */}
+      {/*
       {activeTab !== 'profile' && (
         <TouchableOpacity style={s.fab} onPress={() => navigate('profile')} activeOpacity={0.85}>
           <Text style={s.fabIcon}>👤</Text>
         </TouchableOpacity>
       )}
+      */}
     </SafeAreaView>
   )
 }
@@ -280,7 +343,14 @@ const s = StyleSheet.create({
   },
   notifTitle: { fontSize: 18, fontFamily: fonts.bold, color: colors.background },
   notifClose: { fontSize: 16, color: colors.lightpurple, padding: 4 },
-  notifEmpty: { color: colors.lightpurple, textAlign: 'center', paddingVertical: 24, fontFamily: fonts.regular, opacity: 0.6 },
+  markAllRead: { fontSize: 12, color: colors.lightpurple, fontFamily: fonts.bold },
+  notifEmpty: {
+    color: colors.lightpurple,
+    textAlign: 'center',
+    paddingVertical: 24,
+    fontFamily: fonts.regular,
+    opacity: 0.6,
+  },
   notifItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -294,6 +364,15 @@ const s = StyleSheet.create({
   },
   notifMessage: { fontSize: 14, color: colors.background, lineHeight: 20, fontFamily: fonts.regular },
   notifTime: { fontSize: 11, color: colors.lightpurple, marginTop: 4, fontFamily: fonts.regular, opacity: 0.6 },
+  notifChatBtn: {
+    marginTop: 8,
+    backgroundColor: colors.beige,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+  },
+  notifChatBtnText: { fontSize: 13, fontFamily: fonts.bold, color: colors.purple },
 
   drawerModal: { flex: 1, flexDirection: 'row' },
   drawerBackdrop: { flex: 1, backgroundColor: 'rgba(9,1,36,0.6)' },
@@ -389,3 +468,4 @@ const s = StyleSheet.create({
   },
   fabIcon: { fontSize: 20 },
 })
+
