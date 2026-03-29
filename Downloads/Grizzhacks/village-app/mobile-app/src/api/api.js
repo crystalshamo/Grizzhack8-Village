@@ -154,6 +154,14 @@ export const sendMessage = async (chat_id, sender_id, content) => {
   return res.json()
 }
 
+
+
+
+export const getChatMembers = async (chat_id) => {
+  const res = await fetch(`${BASE_URL}/api/chats/${chat_id}/members`, { headers });
+  return res.json();
+};
+
 // ── Donations ─────────────────────────────────────────────────────────────────
 
 export const getDonations = async () => {
