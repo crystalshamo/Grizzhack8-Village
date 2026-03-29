@@ -115,3 +115,51 @@ export const createDonation = async (user_id, item, quantity) => {
   })
   return res.json()
 }
+
+// ── Events ─────────────────────────────────────────────────────────────────────
+
+export const getEvents = async () => {
+  const res = await fetch(`${BASE_URL}/api/events`, { headers });
+  if (!res.ok) throw new Error("Failed to fetch events");
+  return res.json();
+};
+
+export const getEventById = async (event_id) => {
+  const res = await fetch(`${BASE_URL}/api/events/${event_id}`, { headers });
+  if (!res.ok) throw new Error("Failed to fetch event");
+  return res.json();
+};
+
+export const createEvent = async ({ title, description, event_date, location, created_by }) => {
+  const res = await fetch(`${BASE_URL}/api/events`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ title, description, event_date, location, created_by }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    console.error('Backend error:', data);
+    throw new Error('Failed to create event');
+  }
+  return data;
+};
+
+export const updateEvent = async (event_id, { title, description, event_date, location }) => {
+  const res = await fetch(`${BASE_URL}/api/events/${event_id}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ title, description, event_date, location }),
+  });
+  if (!res.ok) throw new Error("Failed to update event");
+  return res.json();
+};
+
+export const deleteEvent = async (event_id) => {
+  const res = await fetch(`${BASE_URL}/api/events/${event_id}`, {
+    method: "DELETE",
+    headers,
+  });
+  if (!res.ok) throw new Error("Failed to delete event");
+  return res.json();
+};
