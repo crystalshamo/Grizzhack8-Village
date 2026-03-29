@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native'
+import { colors, fonts } from '../../styles/themes'
 
 import { getQuestions, saveAnswers, updateProfile } from '../../api/api'
 
@@ -438,18 +439,17 @@ export default function OnboardingScreen({ user, onComplete }) {
     </SafeAreaView>
   )
 }
-
 const s = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.loginbackground,
   },
 
   loadingWrap: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.loginbackground,
   },
 
   progressWrap: {
@@ -460,7 +460,7 @@ const s = StyleSheet.create({
 
   progressTrack: {
     height: 6,
-    backgroundColor: '#EBEBF5',
+    backgroundColor: 'rgba(184,180,242,0.3)',
     borderRadius: 6,
     overflow: 'hidden',
     marginBottom: 6,
@@ -468,14 +468,16 @@ const s = StyleSheet.create({
 
   progressFill: {
     height: '100%',
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.lightpurple,
     borderRadius: 6,
   },
 
   progressLabel: {
     fontSize: 12,
-    color: '#8B8FA8',
+    color: colors.dark,
     textAlign: 'right',
+    opacity: 0.6,
+    fontFamily: fonts.regular,
   },
 
   content: {
@@ -485,51 +487,53 @@ const s = StyleSheet.create({
 
   stepCategory: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A2E',
+    color: colors.dark,
+    fontFamily: fonts.bold,
     marginBottom: 20,
   },
 
   error: {
-    color: '#EF4444',
+    color: '#FFB4A2',
     fontSize: 13,
     marginBottom: 14,
+    fontFamily: fonts.regular,
   },
 
   questionBlock: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.lightpurple,
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
+        shadowColor: '#090124',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
       },
       android: {
-        elevation: 2,
+        elevation: 8,
       },
     }),
   },
 
   questionText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A2E',
+    color: colors.beige,
+    fontFamily: fonts.bold,
     marginBottom: 14,
     lineHeight: 22,
   },
 
   textInput: {
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: '#1A1A2E',
-    borderWidth: 1,
-    borderColor: '#EBEBF5',
+    color: colors.purple,
+    borderWidth: 1.5,
+    borderColor: 'rgba(184,180,242,0.3)',
+    fontFamily: fonts.regular,
   },
 
   optionsList: {
@@ -543,24 +547,25 @@ const s = StyleSheet.create({
     padding: 13,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#EBEBF5',
-    backgroundColor: '#FAFAFA',
+    borderColor: 'rgba(184,180,242,0.3)',
+    backgroundColor: colors.background,
   },
 
   optionSelected: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#EEF2FF',
+    borderColor: colors.purple,
+    backgroundColor: colors.background,
   },
 
   optionText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.purple,
     flex: 1,
+    fontFamily: fonts.regular,
   },
 
   optionTextSelected: {
-    color: '#4F46E5',
-    fontWeight: '600',
+    color: colors.purple,
+    fontFamily: fonts.bold,
   },
 
   radio: {
@@ -568,12 +573,12 @@ const s = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#C4C8D8',
+    borderColor: 'rgba(184,180,242,0.5)',
   },
 
   radioSelected: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#4F46E5',
+    borderColor: colors.purple,
+    backgroundColor: colors.purple,
   },
 
   checkbox: {
@@ -581,20 +586,20 @@ const s = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#C4C8D8',
+    borderColor: 'rgba(184,180,242,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   checkboxSelected: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: colors.purple,
+    borderColor: colors.purple
   },
 
   checkmark: {
-    color: '#fff',
+    color: colors.dark,
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
 
   footer: {
@@ -605,9 +610,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 20,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.loginbackground,
     borderTopWidth: 1,
-    borderTopColor: '#EBEBF5',
+    borderTopColor: 'rgba(184,180,242,0.3)',
   },
 
   backBtn: {
@@ -616,27 +621,27 @@ const s = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#EBEBF5',
-    backgroundColor: '#fff',
+    borderColor: 'rgba(184,180,242,0.3)',
+    backgroundColor: colors.lightpurple,
   },
 
   backBtnText: {
-    color: '#1A1A2E',
+    color: colors.purple,
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fonts.bold,
   },
 
   nextBtn: {
-    flex: 2,
-    backgroundColor: '#4F46E5',
+    flex: 1,
+    backgroundColor: colors.beige,
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#4F46E5',
+        shadowColor: '#090124',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.2,
         shadowRadius: 10,
       },
       android: {
@@ -646,8 +651,8 @@ const s = StyleSheet.create({
   },
 
   nextBtnText: {
-    color: '#fff',
+    color: colors.dark,
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
 })

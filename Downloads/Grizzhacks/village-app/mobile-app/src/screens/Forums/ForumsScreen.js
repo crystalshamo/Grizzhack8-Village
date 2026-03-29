@@ -4,6 +4,7 @@ import Avatar from '../../components/Avatar'
 import { shared } from '../../styles/shared'
 import * as ImagePicker from 'expo-image-picker'
 
+import { colors, fonts } from '../../styles/themes'
 const API_URL = 'http://35.50.104.14:3001'
 
 const DAILY_PROMPT = {
@@ -199,14 +200,26 @@ const handleLike = async (post) => {
     console.error('Failed to like/unlike post:', err)
   }
 }
+const formatTime = (timestamp) => {
+    if (!timestamp) return ''
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = Math.floor((now - date) / 1000)
+    if (diff < 60) return 'just now'
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    return `${Math.floor(diff / 86400)}d ago`
+  }
+return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.loginbackground }}>
 
-  return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-      <Modal visible={showCreateModal} animationType="slide" transparent>
+      {/* Create Post Modal */}
+      <Modal visible={showCreateModal} animationType="fade" transparent>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create Post</Text>
-            <Text style={styles.modalLabel}>Forum</Text>
+            <Text style={styles.modalTitle}>new post</Text>
+
+            <Text style={styles.modalLabel}>forum</Text>
             <View style={styles.pickerWrap}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {forums.map(forum => (
@@ -220,89 +233,98 @@ const handleLike = async (post) => {
                 ))}
               </ScrollView>
             </View>
-            <Text style={styles.modalLabel}>Content</Text>
+
+            <Text style={styles.modalLabel}>what's on your mind?</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="What's on your mind?"
+              placeholder="share something..."
+              placeholderTextColor={colors.lightpurple}
               value={newPostContent}
               onChangeText={setNewPostContent}
               multiline
             />
-            <Text style={styles.modalLabel}>Image (optional)</Text>
-{newPostImage ? (
-  <View style={{ marginBottom: 10 }}>
-    <Image source={{ uri: newPostImage }} style={{ width: '100%', height: 160, borderRadius: 12 }} resizeMode="cover" />
-    <TouchableOpacity onPress={() => setNewPostImage('')} style={styles.removeImageBtn}>
-      <Text style={styles.removeImageText}>✕ Remove</Text>
-    </TouchableOpacity>
-  </View>
-) : (
-  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-    <TouchableOpacity style={styles.imageBtn} onPress={handlePickImage}>
-      <Text style={styles.imageBtnText}>📷 Choose Photo</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.imageBtn} onPress={handleTakePhoto}>
-      <Text style={styles.imageBtnText}>📸 Take Photo</Text>
-    </TouchableOpacity>
-  </View>
-)}
-            <View style={{ flexDirection: 'row', marginTop: 18 }}>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#E5E7EB' }]} onPress={() => setShowCreateModal(false)}>
-                <Text style={[styles.modalBtnText, { color: '#6B7280' }]}>Cancel</Text>
+
+            <Text style={styles.modalLabel}>image (optional)</Text>
+            {newPostImage ? (
+              <View style={{ marginBottom: 10 }}>
+                <Image source={{ uri: newPostImage }} style={{ width: '100%', height: 140, borderRadius: 12 }} resizeMode="cover" />
+                <TouchableOpacity onPress={() => setNewPostImage('')} style={styles.removeImageBtn}>
+                  <Text style={styles.removeImageText}>✕ remove</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                <TouchableOpacity style={styles.imageBtn} onPress={handlePickImage}>
+                  <Text style={styles.imageBtnText}>📷 choose</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.imageBtn} onPress={handleTakePhoto}>
+                  <Text style={styles.imageBtnText}>📸 camera</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowCreateModal(false)}>
+                <Text style={styles.modalCancelBtnText}>cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#6C63FF', marginLeft: 10 }]} onPress={handleCreatePost} disabled={submitting}>
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>Post</Text>
+              <TouchableOpacity style={styles.modalPostBtn} onPress={handleCreatePost} disabled={submitting}>
+                {submitting ? <ActivityIndicator color={colors.dark} /> : <Text style={styles.modalPostBtnText}>post</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      <ScrollView contentContainerStyle={shared.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={shared.screenHeader}>
-          <Text style={shared.screenTitle}>Forums</Text>
-          <Text style={shared.screenSubtitle}>What's happening in the village</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.screenTitle}>forums</Text>
+          <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreateModal(true)}>
+            <Text style={styles.createBtnText}>＋ post</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchBar}>
+          <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search posts, forums, or people..."
-            placeholderTextColor="#B0B4C8"
+            placeholder="search posts & forums"
+            placeholderTextColor={colors.lightpurple}
             value={searchQuery}
             onChangeText={handleSearch}
           />
-          {searching && <ActivityIndicator size="small" color="#6C63FF" style={{ marginLeft: 8 }} />}
+          {searching && <ActivityIndicator size="small" color={colors.lightpurple} />}
         </View>
-
-        <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreateModal(true)}>
-          <Text style={styles.createBtnText}>＋ Create Post</Text>
-        </TouchableOpacity>
 
         {/* Daily Prompt */}
         <View style={styles.promptCard}>
+          <View style={styles.promptHeader}>
+            <Text style={styles.promptBadge}>daily prompt</Text>
+          </View>
           <Text style={styles.promptQ}>{DAILY_PROMPT.question}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+          <View style={styles.promptInputRow}>
             <TextInput
               style={styles.promptInput}
-              placeholder="Your answer..."
+              placeholder="share your answer..."
+              placeholderTextColor="rgba(234,233,238,0.5)"
               value={promptAnswer}
               onChangeText={setPromptAnswer}
               multiline
             />
             <TouchableOpacity style={styles.promptBtn} onPress={handlePromptSubmit} disabled={submitting}>
-              <Text style={styles.promptBtnText}>Post</Text>
+              {submitting ? <ActivityIndicator color={colors.dark} size="small" /> : <Text style={styles.promptBtnText}>→</Text>}
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Posts */}
         {loading ? (
-          <ActivityIndicator size="large" color="#6C63FF" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={colors.lightpurple} style={{ marginTop: 40 }} />
         ) : posts.length === 0 ? (
           <Text style={styles.emptyText}>
-            {searchQuery ? 'No posts found for your search.' : 'No posts yet. Be the first to share!'}
+            {searchQuery ? 'no posts found.' : 'no posts yet. be the first!'}
           </Text>
         ) : (
           posts.map(post => (
@@ -312,31 +334,34 @@ const handleLike = async (post) => {
               activeOpacity={0.92}
               onPress={() => navigation.navigate('PostDetail', { post })}
             >
-              <View style={styles.forumTop}>
-                <Avatar letter={post.author_name ? post.author_name[0] : '?'} color="#6C63FF" />
-                <View style={styles.forumMeta}>
-                  <Text style={styles.forumAuthor}>{post.author_name || 'Unknown'}</Text>
-                  <Text style={styles.forumTime}>{post.forum_name || 'General'}</Text>
+              <View style={styles.cardTop}>
+                <Avatar letter={post.author_name ? post.author_name[0] : '?'} color={colors.lightpurple} />
+                <View style={styles.cardMeta}>
+                  <Text style={styles.cardAuthor}>{post.author_name || 'unknown'}</Text>
+                  <Text style={styles.cardTime}>{formatTime(post.created_at)}</Text>
                 </View>
-                <View style={[styles.tag, { backgroundColor: '#E0E7FF' }]}>
-                  <Text style={[styles.tagText, { color: '#6C63FF' }]}>{post.forum_name || 'General'}</Text>
+                <View style={styles.forumTag}>
+                  <Text style={styles.forumTagText}>{post.forum_name || 'general'}</Text>
                 </View>
               </View>
+
               {post.image_url && (
                 <Image source={{ uri: post.image_url }} style={styles.postImage} resizeMode="cover" />
               )}
-              <Text style={styles.forumBody}>{post.content}</Text>
-              <View style={styles.forumActions}>
+
+              <Text style={styles.cardBody}>{post.content}</Text>
+
+              <View style={styles.cardActions}>
                 <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(post)}>
-  <Text style={[styles.actionBtnText, likedPosts[post.post_id] && { color: '#EF4444' }]}>
-    {likedPosts[post.post_id] ? '♥' : '♡'}  {post.like_count}
-  </Text>
-</TouchableOpacity>
+                  <Text style={[styles.actionBtnText, likedPosts[post.post_id] && { color: '#EF4444' }]}>
+                    {likedPosts[post.post_id] ? '♥' : '♡'}  {post.like_count}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.actionBtn}>
                   <Text style={styles.actionBtnText}>💬  {post.comment_count}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, { marginLeft: 'auto' }]}>
-                  <Text style={styles.actionBtnText}>Share</Text>
+                  <Text style={styles.actionBtnText}>share</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -348,205 +373,263 @@ const handleLike = async (post) => {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  screenTitle: {
+    fontSize: 32,
+    color: colors.dark,
+    fontFamily: fonts.bold,
+    letterSpacing: -0.5,
+  },
+  createBtn: {
+    backgroundColor: colors.lightpurple,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  createBtnText: {
+    color: colors.dark,
+    fontFamily: fonts.bold,
+    fontSize: 14,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    backgroundColor: colors.purple,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  searchIcon: {
+    fontSize: 16,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1A1A2E',
+    color: colors.background,
+    fontFamily: fonts.regular,
   },
   promptCard: {
-    backgroundColor: '#F5F7FA',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: colors.lightpurple,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#090124', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16 },
+      android: { elevation: 6 },
+    }),
+  },
+  promptHeader: {
+    marginBottom: 10,
+  },
+  promptBadge: {
+    fontSize: 11,
+    color: colors.dark,
+    fontFamily: fonts.bold,
+    backgroundColor: colors.beige,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    overflow: 'hidden',
+    letterSpacing: 0.5,
   },
   promptQ: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6C63FF',
+    fontSize: 16,
+    color: colors.dark,
+    fontFamily: fonts.bold,
+    marginBottom: 14,
+    lineHeight: 22,
+  },
+  promptInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   promptInput: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(9,1,36,0.15)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginRight: 8,
-    minHeight: 36,
+    color: colors.background,
+    fontFamily: fonts.regular,
+    minHeight: 40,
     maxHeight: 80,
   },
   promptBtn: {
-    backgroundColor: '#6C63FF',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: colors.beige,
+    borderRadius: 12,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   promptBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+    color: colors.dark,
+    fontSize: 20,
+    fontFamily: fonts.bold,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    backgroundColor: colors.purple,
+    borderRadius: 20,
     padding: 18,
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 14,
+    ...Platform.select({
+      ios: { shadowColor: '#090124', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12 },
+      android: { elevation: 4 },
+    }),
   },
-  forumTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  forumMeta: { flex: 1 },
-  forumAuthor: { fontSize: 14, fontWeight: '600', color: '#1A1A2E' },
-  forumTime: { fontSize: 12, color: '#B0B4C8', marginTop: 1 },
-  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  tagText: { fontSize: 11, fontWeight: '700' },
-  forumBody: { fontSize: 14, color: '#6B7280', lineHeight: 21, marginBottom: 14 },
-  forumActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#F5F7FA' },
-  actionBtnText: { fontSize: 13, color: '#8B8FA8', fontWeight: '500' },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  cardMeta: { flex: 1 },
+  cardAuthor: { fontSize: 14, fontFamily: fonts.bold, color: colors.background },
+  cardTime: { fontSize: 11, color: colors.lightpurple, marginTop: 1, fontFamily: fonts.regular },
+  forumTag: {
+    backgroundColor: 'rgba(184,180,242,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(184,180,242,0.3)',
+  },
+  forumTagText: { fontSize: 11, color: colors.lightpurple, fontFamily: fonts.bold },
+  cardBody: { fontSize: 14, color: colors.background, lineHeight: 21, marginBottom: 14, fontFamily: fonts.regular, opacity: 0.85 },
+  cardActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(184,180,242,0.15)' },
+  actionBtnText: { fontSize: 13, color: colors.lightpurple, fontFamily: fonts.regular },
   postImage: {
     width: '100%',
     height: 180,
     borderRadius: 14,
-    marginBottom: 10,
-    backgroundColor: '#E5E7EB',
+    marginBottom: 12,
+    backgroundColor: 'rgba(184,180,242,0.1)',
   },
   emptyText: {
     textAlign: 'center',
-    color: '#8B8FA8',
+    color: colors.lightpurple,
     fontSize: 15,
     marginTop: 40,
+    fontFamily: fonts.regular,
+    opacity: 0.7,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(9,1,36,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    width: '100%',
+    backgroundColor: colors.purple,
+    borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 16,
+    fontSize: 22,
+    fontFamily: fonts.bold,
+    color: colors.background,
+    marginBottom: 20,
   },
   modalLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
+    fontSize: 11,
+    color: colors.beige,
+    fontFamily: fonts.bold,
+    marginBottom: 6,
     marginTop: 12,
-    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   pickerWrap: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    marginBottom: 4,
   },
   forumChip: {
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#E0E7FF',
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(184,180,242,0.15)',
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(184,180,242,0.2)',
   },
   forumChipActive: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: colors.lightpurple,
+    borderColor: colors.lightpurple,
   },
   forumChipText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A2E',
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: colors.lightpurple,
   },
   forumChipTextActive: {
-    color: '#fff',
+    color: colors.dark,
+    fontFamily: fonts.bold,
   },
   modalInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(184,180,242,0.1)',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    minHeight: 40,
-    maxHeight: 100,
-  },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  createBtn: {
-    backgroundColor: '#6C63FF',
-    borderRadius: 14,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 18,
-    alignItems: 'center',
-  },
-  createBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
+    color: colors.background,
+    borderWidth: 1.5,
+    borderColor: 'rgba(184,180,242,0.2)',
+    fontFamily: fonts.regular,
+    minHeight: 80,
+    maxHeight: 120,
+    textAlignVertical: 'top',
   },
   imageBtn: {
-  flex: 1,
-  backgroundColor: '#F5F7FA',
-  borderRadius: 12,
-  paddingVertical: 10,
-  alignItems: 'center',
-  borderWidth: 1,
-  borderColor: '#E5E7EB',
-},
-imageBtnText: {
-  fontSize: 13,
-  fontWeight: '600',
-  color: '#6C63FF',
-},
-removeImageBtn: {
-  marginTop: 6,
-  alignSelf: 'flex-end',
-},
-removeImageText: {
-  fontSize: 13,
-  color: '#EF4444',
-  fontWeight: '600',
-},
+    flex: 1,
+    backgroundColor: 'rgba(184,180,242,0.1)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(184,180,242,0.2)',
+  },
+  imageBtnText: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: colors.lightpurple,
+  },
+  removeImageBtn: { marginTop: 6, alignSelf: 'flex-end' },
+  removeImageText: { fontSize: 13, color: colors.beige, fontFamily: fonts.regular },
+  modalCancelBtn: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: 'rgba(184,180,242,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(184,180,242,0.2)',
+  },
+  modalCancelBtnText: {
+    fontSize: 15,
+    fontFamily: fonts.bold,
+    color: colors.lightpurple,
+  },
+  modalPostBtn: {
+    flex: 2,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: colors.beige,
+  },
+  modalPostBtnText: {
+    fontSize: 15,
+    fontFamily: fonts.bold,
+    color: colors.dark,
+  },
 })
