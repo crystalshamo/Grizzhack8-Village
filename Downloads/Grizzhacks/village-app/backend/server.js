@@ -11,14 +11,13 @@ const db = mysql.createPool({
   host: "localhost",
   user: "root",
   password: "Password",
+  password: "Password",
   database: "village_app",
 });
 
 app.get("/", (req, res) => {
   res.send("Village backend is running 🚀");
 });
-
-// ── Users ─────────────────────────────────────────────────────────────────────
 
 app.post("/api/users/register", async (req, res) => {
   const { name, email, password_hash, is_mentor, zipcode } = req.body;
@@ -46,6 +45,7 @@ app.post("/api/users/login", async (req, res) => {
   try {
     const [results] = await db.query(
       "SELECT user_id, name, email, password_hash AS stored_hash, is_mentor, zipcode, about_text FROM Users WHERE email = ?",
+      "SELECT user_id, name, email, password_hash AS stored_hash, is_mentor, zipcode, about_text FROM Users WHERE email = ?",
       [email]
     );
 
@@ -70,6 +70,7 @@ app.post("/api/users/login", async (req, res) => {
 app.get("/api/users/:id", async (req, res) => {
   try {
     const [results] = await db.query(
+      "SELECT user_id, name, email, is_mentor, zipcode, about_text FROM Users WHERE user_id = ?",
       "SELECT user_id, name, email, is_mentor, zipcode, about_text FROM Users WHERE user_id = ?",
       [req.params.id]
     );
@@ -298,6 +299,7 @@ app.get("/api/mentors/requests/:user_id", async (req, res) => {
     );
     res.json(rows.map(r => r.mentor_id));
   } catch (err) {
+    console.error("Failed to update user:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -348,8 +350,6 @@ app.post("/api/organizations", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// ── Questions & Answers ───────────────────────────────────────────────────────
 
 app.get("/api/questions", async (req, res) => {
   try {
@@ -463,8 +463,6 @@ app.delete("/api/posts/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// ── Comments ──────────────────────────────────────────────────────────────────
 
 app.get("/api/posts/:id/comments", async (req, res) => {
   try {
