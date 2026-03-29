@@ -1,12 +1,3 @@
-<p align="center">
-  <img src="./assets/villageLogo.png" alt="Village Logo" width="150"/>
-</p>
-
-<h1 align="center">Village</h1>
-
-<p align="center"><i>It takes a village</i></p>
-
----
 
 ## About
 
