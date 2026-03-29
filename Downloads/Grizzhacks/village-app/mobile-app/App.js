@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
+import { useFonts, BricolageGrotesque_400Regular, BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque'
+
 import {
   View,
   Text,
@@ -10,8 +12,10 @@ import {
   Pressable,
   Platform,
 } from 'react-native'
-
+import { NavigationContainer } from '@react-navigation/native'
+import { createStackNavigator } from '@react-navigation/stack'
 import ForumsScreen from './src/screens/Forums/ForumsScreen'
+import PostDetailScreen from './src/screens/Forums/PostDetailScreen'
 import ConnectingScreen from './src/screens/Connecting/ConnectingScreen'
 import DonationsScreen from './src/screens/Donations/DonationsScreen'
 import ProfileScreen from './src/screens/Profile/ProfileScreen'
@@ -20,13 +24,20 @@ import RegisterScreen from './src/screens/Auth/RegisterScreen'
 import OnboardingScreen from './src/screens/Auth/OnboardingScreen'
 import { NAV_ITEMS } from './src/data/index'
 
+const Stack = createStackNavigator();
+
 export default function App() {
   const [user, setUser] = useState(null)
   const [onboarded, setOnboarded] = useState(false)
   const [authScreen, setAuthScreen] = useState('login')
   const [activeTab, setActiveTab] = useState('forums')
   const [menuOpen, setMenuOpen] = useState(false)
+const [fontsLoaded] = useFonts({
+    BricolageGrotesque_400Regular,
+    BricolageGrotesque_700Bold,
+  })
 
+  if (!fontsLoaded) return null
   function navigate(tab) {
     setActiveTab(tab)
     setMenuOpen(false)
@@ -44,7 +55,6 @@ export default function App() {
         />
       )
     }
-
     return (
       <LoginScreen
         onLogin={(loggedInUser) => {
@@ -70,7 +80,6 @@ export default function App() {
   return (
     <SafeAreaView style={s.shell}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
       <Modal
         visible={menuOpen}
         transparent
@@ -82,11 +91,9 @@ export default function App() {
             style={s.drawerBackdrop}
             onPress={() => setMenuOpen(false)}
           />
-
           <View style={s.drawer}>
             <View style={s.drawerTop}>
               <Text style={s.drawerLogo}>Village</Text>
-
               <TouchableOpacity
                 onPress={() => setMenuOpen(false)}
                 style={s.drawerCloseBtn}
@@ -94,7 +101,6 @@ export default function App() {
                 <Text style={s.drawerCloseText}>✕</Text>
               </TouchableOpacity>
             </View>
-
             <View style={s.drawerNav}>
               {NAV_ITEMS.map((item) => (
                 <TouchableOpacity
@@ -117,7 +123,6 @@ export default function App() {
                   </Text>
                 </TouchableOpacity>
               ))}
-
               <TouchableOpacity
                 style={[s.drawerItem, { marginTop: 'auto' }]}
                 onPress={() => {
@@ -130,15 +135,12 @@ export default function App() {
                 activeOpacity={0.75}
               >
                 <Text style={s.drawerIcon}>🚪</Text>
-                <Text style={[s.drawerItemLabel, { color: '#EF4444' }]}>
-                  Log Out
-                </Text>
+                <Text style={[s.drawerItemLabel, { color: '#EF4444' }]}>Log Out</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
       <View style={s.topBar}>
         <TouchableOpacity
           style={s.hamburger}
@@ -149,19 +151,26 @@ export default function App() {
           <View style={s.hamLine} />
           <View style={s.hamLine} />
         </TouchableOpacity>
-
         <Text style={s.topBarTitle}>{currentLabel}</Text>
-
         <View style={{ width: 40 }} />
       </View>
-
       <View style={{ flex: 1 }}>
-        {activeTab === 'forums' && <ForumsScreen user={user} />}
+        {activeTab === 'forums' && (
+          <NavigationContainer independent={true}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Forums">
+                {props => <ForumsScreen {...props} user={user} />}
+              </Stack.Screen>
+              <Stack.Screen name="PostDetail">
+                {props => <PostDetailScreen {...props} user={user} />}
+              </Stack.Screen>
+            </Stack.Navigator>
+          </NavigationContainer>
+        )}
         {activeTab === 'connecting' && <ConnectingScreen user={user} />}
         {activeTab === 'donations' && <DonationsScreen user={user} />}
         {activeTab === 'profile' && <ProfileScreen user={user} />}
       </View>
-
       {activeTab !== 'profile' && (
         <TouchableOpacity
           style={s.fab}
@@ -180,7 +189,6 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
-
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -191,13 +199,11 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.06)',
   },
-
   topBarTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: '#1A1A2E',
   },
-
   hamburger: {
     width: 40,
     height: 40,
@@ -205,7 +211,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   hamLine: {
     width: 20,
     height: 2,
@@ -213,17 +218,14 @@ const s = StyleSheet.create({
     borderRadius: 2,
     marginVertical: 2,
   },
-
   drawerModal: {
     flex: 1,
     flexDirection: 'row',
   },
-
   drawerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(20,18,30,0.4)',
   },
-
   drawer: {
     position: 'absolute',
     top: 0,
@@ -245,7 +247,6 @@ const s = StyleSheet.create({
       },
     }),
   },
-
   drawerTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -256,28 +257,23 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F6',
   },
-
   drawerLogo: {
     fontSize: 22,
     fontWeight: '800',
     color: '#1A1A2E',
   },
-
   drawerCloseBtn: {
     padding: 6,
     borderRadius: 8,
   },
-
   drawerCloseText: {
     fontSize: 16,
     color: '#8B8FA8',
   },
-
   drawerNav: {
     padding: 12,
     flex: 1,
   },
-
   drawerItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,28 +283,23 @@ const s = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 4,
   },
-
   drawerItemActive: {
     backgroundColor: '#EEF2FF',
   },
-
   drawerIcon: {
     fontSize: 20,
     width: 28,
     textAlign: 'center',
   },
-
   drawerItemLabel: {
     fontSize: 15,
     fontWeight: '500',
     color: '#8B8FA8',
   },
-
   drawerItemLabelActive: {
     color: '#4F46E5',
     fontWeight: '700',
   },
-
   fab: {
     position: 'absolute',
     bottom: 30,
@@ -331,7 +322,6 @@ const s = StyleSheet.create({
       },
     }),
   },
-
   fabIcon: {
     fontSize: 22,
   },

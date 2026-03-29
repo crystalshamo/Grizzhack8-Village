@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, Image, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Animated,
 } from 'react-native'
 import { registerUser } from '../../api/api'
+
+import { colors, fonts } from '../../styles/themes'
 
 export default function RegisterScreen({ onRegister, onGoToLogin }) {
   const [name, setName]         = useState('')
@@ -14,6 +16,17 @@ export default function RegisterScreen({ onRegister, onGoToLogin }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
 
+  const [focusedField, setFocusedField] = useState(null)
+  
+  const shakeAnim = useRef(new Animated.Value(0)).current
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(30)).current
+ useState(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+    ]).start()
+  }, [])
   async function handleRegister() {
     if (!name || !email || !password || !confirm) {
       setError('Please fill in all fields')
@@ -42,97 +55,109 @@ export default function RegisterScreen({ onRegister, onGoToLogin }) {
       setLoading(false)
     }
   }
+   const field = (label, value, setter, opts = {}) => (
+    <View>
+      <Text style={s.label}>{label}</Text>
+      <TextInput
+        style={[s.input, focusedField === label && s.inputFocused]}
+        placeholderTextColor={colors.lightpurple}
+        value={value}
+        onChangeText={setter}
+        onFocus={() => setFocusedField(label)}
+        onBlur={() => setFocusedField(null)}
+        {...opts}
+      />
+    </View>
+  )
 
   return (
     <SafeAreaView style={s.shell}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.inner} showsVerticalScrollIndicator={false}>
-          <View style={s.header}>
-            <Text style={s.logo}>Village</Text>
-            <Text style={s.tagline}>Create your account</Text>
-          </View>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            <View style={s.header}>
+  <Image
+    source={require('../../../../assets/mascot.png')}
+    style={s.mascot}
+    resizeMode="contain"
+  />
+  <Text style={s.logo}>village</Text>
+  <Text style={s.tagline}>you belong here :)</Text>
+</View>
 
-          <View style={s.card}>
-            <Text style={s.label}>Full Name</Text>
-            <TextInput
-              style={s.input} placeholder="Your name"
-              placeholderTextColor="#B0B4C8"
-              value={name} onChangeText={setName}
-            />
+            <Animated.View style={[s.card, { transform: [{ translateX: shakeAnim }] }]}>
+              {field('full name', name, setName, { placeholder: 'your name' })}
+              {field('email', email, setEmail, { placeholder: 'you@email.com', autoCapitalize: 'none', keyboardType: 'email-address' })}
+              {field('password', password, setPassword, { placeholder: 'min. 6 characters', secureTextEntry: true })}
+              {field('confirm password', confirm, setConfirm, { placeholder: 'repeat password', secureTextEntry: true })}
 
-            <Text style={s.label}>Email</Text>
-            <TextInput
-              style={s.input} placeholder="you@email.com"
-              placeholderTextColor="#B0B4C8"
-              value={email} onChangeText={setEmail}
-              autoCapitalize="none" keyboardType="email-address"
-            />
+              {error ? <Text style={s.error}>{error}</Text> : null}
 
-            <Text style={s.label}>Password</Text>
-            <TextInput
-              style={s.input} placeholder="Min. 6 characters"
-              placeholderTextColor="#B0B4C8"
-              value={password} onChangeText={setPassword}
-              secureTextEntry
-            />
+              <TouchableOpacity style={s.btn} onPress={handleRegister} activeOpacity={0.85} disabled={loading}>
+                {loading
+                  ? <ActivityIndicator color={colors.white} />
+                  : <Text style={s.btnText}>create account</Text>
+                }
+              </TouchableOpacity>
+            </Animated.View>
 
-            <Text style={s.label}>Confirm Password</Text>
-            <TextInput
-              style={s.input} placeholder="Repeat password"
-              placeholderTextColor="#B0B4C8"
-              value={confirm} onChangeText={setConfirm}
-              secureTextEntry
-            />
-
-            {error ? <Text style={s.error}>{error}</Text> : null}
-
-            <TouchableOpacity style={s.btn} onPress={handleRegister} activeOpacity={0.85} disabled={loading}>
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={s.btnText}>Create Account</Text>
-              }
+            <TouchableOpacity onPress={onGoToLogin} style={s.switchRow}>
+              <Text style={s.switchText}>already have an account? </Text>
+              <Text style={s.switchLink}>log in</Text>
             </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity onPress={onGoToLogin} style={s.switchRow}>
-            <Text style={s.switchText}>Already have an account? </Text>
-            <Text style={s.switchLink}>Log in</Text>
-          </TouchableOpacity>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
-
 const s = StyleSheet.create({
-  shell:   { flex: 1, backgroundColor: '#F5F7FA' },
-  inner:   { padding: 24, paddingBottom: 48 },
-  header:  { alignItems: 'center', marginBottom: 32, marginTop: 16 },
-  logo:    { fontSize: 36, fontWeight: '800', color: '#1A1A2E', letterSpacing: -1 },
-  tagline: { fontSize: 15, color: '#8B8FA8', marginTop: 4 },
+  shell: { flex: 1, backgroundColor: colors.loginbackground },
+  inner: { padding: 28, paddingBottom: 48, paddingTop: 50 },
+  header: { alignItems: 'center', marginBottom: 36, marginTop: 16 },
+  logo: {
+    fontSize: 42, color: colors.dark,
+    fontFamily: fonts.bold, letterSpacing: -1,
+  },
+  tagline: {
+    fontSize: 15, color: colors.dark,
+    fontFamily: fonts.regular, marginTop: 6, opacity: 0.6,
+  },
+  mascot: {
+    width: 100,
+    height: 100,
+    marginBottom: -23,
+  },
   card: {
-    backgroundColor: '#fff', borderRadius: 24, padding: 24,
+    backgroundColor: colors.lightpurple, borderRadius: 20, padding: 24,
+    borderWidth: 1, borderColor: colors.lightpurple, gap: 4,
     ...Platform.select({
-      ios:     { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16 },
-      android: { elevation: 4 },
+      ios: { shadowColor: '#090124', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20 },
+      android: { elevation: 8 },
     }),
   },
-  label:  { fontSize: 13, fontWeight: '600', color: '#1A1A2E', marginBottom: 6, marginTop: 14 },
+  label: {
+    fontSize: 12, color: colors.beige,
+    fontFamily: fonts.bold, marginBottom: 6,
+    marginTop: 14, textTransform: 'lowercase', letterSpacing: 0.5,
+  },
   input: {
-    backgroundColor: '#F5F7FA', borderRadius: 12, padding: 14,
-    fontSize: 15, color: '#1A1A2E', borderWidth: 1, borderColor: '#EBEBF5',
+    backgroundColor: colors.background, borderRadius: 12, padding: 14,
+    fontSize: 15, color: colors.purple, borderWidth: 1.5,
+    borderColor: colors.lightpurple, fontFamily: fonts.regular,
   },
-  error:      { color: '#EF4444', fontSize: 13, marginTop: 10, textAlign: 'center' },
+  inputFocused: { borderColor: colors.beige, backgroundColor: colors.background },
+  error: {
+    color: '#FFB4A2', fontSize: 13,
+    marginTop: 12, textAlign: 'center',
+    fontFamily: fonts.regular,
+  },
   btn: {
-    backgroundColor: '#4F46E5', borderRadius: 14, paddingVertical: 15,
-    alignItems: 'center', marginTop: 20,
-    ...Platform.select({
-      ios:     { shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10 },
-      android: { elevation: 6 },
-    }),
+    backgroundColor: colors.beige, borderRadius: 14,
+    paddingVertical: 16, alignItems: 'center', marginTop: 22,
   },
-  btnText:    { color: '#fff', fontSize: 16, fontWeight: '700' },
-  switchRow:  { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  switchText: { color: '#8B8FA8', fontSize: 14 },
-  switchLink: { color: '#4F46E5', fontSize: 14, fontWeight: '700' },
+  btnText: { color: colors.dark, fontSize: 16, fontFamily: fonts.bold, letterSpacing: 0.3 },
+  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  switchText: { color: colors.dark, fontSize: 14, fontFamily: fonts.regular, opacity: 0.6 },
+  switchLink: { color: colors.dark, fontSize: 14, fontFamily: fonts.bold },
 })
