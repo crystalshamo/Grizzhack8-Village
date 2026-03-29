@@ -1,84 +1,228 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import Avatar from '../../components/Avatar';
-import { shared } from '../../styles/shared';
-import { FORUM_POSTS } from '../../data/index';
+import React, { useState, useEffect } from 'react' 
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native'
+import Avatar from '../../components/Avatar'
+import { useRoute } from '@react-navigation/native'
 
-export default function PostDetailScreen({ post, onBack }) {
+const API_URL = 'http://35.50.104.14:3001'
+
+export default function PostDetailScreen({ user }) {
+  const route = useRoute()
+  const { post } = route.params
+  const [comments, setComments] = useState([])
+  const [commentText, setCommentText] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [liked, setLiked] = useState(false)
+const [likeCount, setLikeCount] = useState(post.like_count ?? 0)
+
+  useEffect(() => {
+    fetchComments()
+  }, [])
+
+  const fetchComments = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/posts/${post.post_id}/comments`)
+      const data = await res.json()
+      setComments(data)
+    } catch (err) {
+      console.error('Failed to fetch comments:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return
+    setSubmitting(true)
+    try {
+      await fetch(`${API_URL}/api/posts/${post.post_id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user?.user_id,
+          content: commentText
+        })
+      })
+      setCommentText('')
+      fetchComments()
+    } catch (err) {
+      console.error('Failed to add comment:', err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+  const handleLike = async () => {
+  const endpoint = liked ? 'unlike' : 'like'
+  try {
+    const res = await fetch(`${API_URL}/api/posts/${post.post_id}/${endpoint}`, {
+      method: 'POST',
+    })
+    const data = await res.json()
+    setLiked(!liked)
+    setLikeCount(data.like_count)
+  } catch (err) {
+    console.error('Failed to like/unlike post:', err)
+  }
+}
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
-      </TouchableOpacity>
-      <View style={shared.card}>
-        <View style={styles.forumTop}>
-          <Avatar letter={post.avatar} color={post.avatarColor} />
-          <View style={styles.forumMeta}>
-            <Text style={styles.forumAuthor}>{post.author}</Text>
-            <Text style={styles.forumTime}>{post.time}</Text>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <View style={styles.forumTop}>
+            <Avatar letter={post.author_name ? post.author_name[0] : '?'} color="#6C63FF" />
+            <View style={styles.forumMeta}>
+              <Text style={styles.forumAuthor}>{post.author_name || 'Unknown'}</Text>
+              <Text style={styles.forumTime}>{post.forum_name || 'Forum'}</Text>
+            </View>
+            <View style={[styles.tag, { backgroundColor: '#E0E7FF' }]}> 
+              <Text style={[styles.tagText, { color: '#6C63FF' }]}>{post.forum_name || 'Forum'}</Text>
+            </View>
           </View>
-          <View style={[styles.tag, { backgroundColor: post.tagBg }]}> 
-            <Text style={[styles.tagText, { color: post.tagTextColor }]}>{post.tag}</Text>
+          {post.image_url && (
+            <Image source={{ uri: post.image_url }} style={styles.postImage} resizeMode="cover" />
+          )}
+          <Text style={styles.forumBody}>{post.content}</Text>
+          <View style={styles.forumActions}>
+            <TouchableOpacity style={styles.actionBtn} onPress={handleLike}>
+  <Text style={[styles.actionBtnText, liked && { color: '#EF4444' }]}>
+    {liked ? '♥' : '♡'}  {likeCount}
+  </Text>
+  <Image 
+  source={require('../../../../assets/mascot.png')} 
+  style={{ width: 100, height: 100 }}
+  resizeMode="contain"
+/>
+</TouchableOpacity>
+            <TouchableOpacity style={styles.actionBtn}>
+              <Text style={styles.actionBtnText}>💬  {post.comment_count}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { marginLeft: 'auto' }]}> 
+              <Text style={styles.actionBtnText}>Share</Text>
+            </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.forumTitle}>{post.title}</Text>
-        {post.image && (
-          <Image source={{ uri: post.image }} style={styles.postImage} />
-        )}
-        <Text style={styles.forumBody}>{post.body}</Text>
-        <View style={styles.forumActions}>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionBtnText}>♡  {post.likes}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionBtnText}>💬  {post.replies}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, { marginLeft: 'auto' }]}> 
-            <Text style={styles.actionBtnText}>Share</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <Text style={styles.commentsTitle}>Comments</Text>
-      <ScrollView contentContainerStyle={styles.commentsList}>
-        {post.comments?.map((comment, idx) => (
-          <View key={idx} style={styles.commentCard}>
-            <View style={styles.commentTop}>
-              <Avatar letter={comment.avatar} color={comment.avatarColor} size={32} />
-              <View style={styles.commentMeta}>
-                <Text style={styles.commentAuthor}>{comment.author}</Text>
-                <Text style={styles.commentTime}>{comment.time}</Text>
+        <Text style={styles.commentsHeader}>Comments</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#6C63FF" style={{ marginTop: 20 }} />
+        ) : comments.length === 0 ? (
+          <Text style={{ color: '#8B8FA8', textAlign: 'center', marginTop: 20 }}>No comments yet.</Text>
+        ) : (
+          comments.map(comment => (
+            <View key={comment.comment_id} style={styles.commentCard}>
+              <Avatar letter={comment.author_name ? comment.author_name[0] : '?'} color="#6C63FF" size={36} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.commentAuthor}>{comment.author_name || 'Unknown'}</Text>
+                  {/* <Text style={styles.commentTime}>{comment.created_at}</Text> */}
+                </View>
+                <Text style={styles.commentText}>{comment.content}</Text>
               </View>
             </View>
-            <Text style={styles.commentBody}>{comment.body}</Text>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
-    </View>
-  );
+      <View style={styles.commentInputBar}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="Add a comment..."
+          value={commentText}
+          onChangeText={setCommentText}
+          multiline
+        />
+        <TouchableOpacity style={styles.sendBtn} onPress={handleAddComment} disabled={submitting}>
+          <Text style={styles.sendBtnText}>Send</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F7FA', padding: 16 },
-  backBtn: { marginBottom: 10, alignSelf: 'flex-start', padding: 8, borderRadius: 12, backgroundColor: '#EEF2FF' },
-  backText: { color: '#4F46E5', fontWeight: '600', fontSize: 15 },
+  container: {
+    padding: 18,
+    paddingBottom: 90,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   forumTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   forumMeta: { flex: 1 },
   forumAuthor: { fontSize: 14, fontWeight: '600', color: '#1A1A2E' },
-  forumTime: { fontSize: 12, color: '#B0B4C8', marginTop: 1 },
+  forumTime: { fontSize: 12, color: '#B0B4C8', marginTop: 1, marginLeft: 8 },
   tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   tagText: { fontSize: 11, fontWeight: '700' },
-  forumTitle: { fontSize: 17, fontWeight: '700', color: '#1A1A2E', marginBottom: 7, lineHeight: 24 },
-  forumBody: { fontSize: 15, color: '#6B7280', lineHeight: 22, marginBottom: 14 },
-  postImage: { width: '100%', height: 180, borderRadius: 18, marginBottom: 14, backgroundColor: '#E5E7EB' },
-  forumActions: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 10 },
+  forumBody: { fontSize: 14, color: '#6B7280', lineHeight: 21, marginBottom: 14 },
+  forumActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#F5F7FA' },
   actionBtnText: { fontSize: 13, color: '#8B8FA8', fontWeight: '500' },
-  commentsTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A2E', marginTop: 18, marginBottom: 8 },
-  commentsList: { gap: 12, paddingBottom: 40 },
-  commentCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, marginBottom: 4 },
-  commentTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-  commentMeta: { flex: 1 },
+  postImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    marginBottom: 10,
+    backgroundColor: '#E5E7EB',
+  },
+  commentsHeader: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#6C63FF',
+    marginBottom: 10,
+    marginLeft: 2,
+  },
+  commentCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F5F7FA',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+  },
   commentAuthor: { fontSize: 13, fontWeight: '600', color: '#1A1A2E' },
-  commentTime: { fontSize: 11, color: '#B0B4C8', marginTop: 1 },
-  commentBody: { fontSize: 14, color: '#6B7280', lineHeight: 20 },
-});
+  commentTime: { fontSize: 11, color: '#B0B4C8', marginLeft: 8 },
+  commentText: { fontSize: 14, color: '#6B7280', marginTop: 2 },
+  commentInputBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderColor: '#E5E7EB',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginRight: 8,
+    minHeight: 36,
+    maxHeight: 80,
+  },
+  sendBtn: {
+    backgroundColor: '#6C63FF',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  sendBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+})
